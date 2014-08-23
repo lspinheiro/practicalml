@@ -1,0 +1,103 @@
+Human Activity Recognition - Predicting weight-lifting styles
+========================================================
+
+# Executive Summary
+
+The objective of this study is to predict the way people exercise using data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants.
+
+## Data 
+
+
+The data for this project are available in the following addresses: 
+
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv
+
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+
+And the data for this project come from this source: http://groupware.les.inf.puc-rio.br/har.
+
+# Data Processing
+
+The first thing is to read and inspect the data.
+
+```{r data inspection, echo=FALSE}
+pml_train_raw <- read.csv("pml-training.csv")
+pml_test_raw <- read.csv("pml-testing.csv")
+dim(pml_train_raw )
+```
+
+Due to the high dimension we do not show the variables here. But from the table view we can see many variables contain missing or empty values. We move to see teh relevance of these variables and remove the variables that do not contain much information
+
+```{r data processing, echo=FALSE}
+columnNACounts <- colSums(is.na(pml_train_raw))
+badColumns <- columnNACounts >= 19000
+cleanTrainingdata <- pml_train_raw[!badColumns]
+sum(is.na(cleanTrainingdata))
+
+columnNACounts <- colSums(is.na(pml_test_raw))
+badColumns <- columnNACounts >= 20
+cleanTestingdata <- pml_test_raw[!badColumns]
+
+#remove empty cells
+EmptyColCounts <- colSums(cleanTrainingdata == "")
+EmptyCols <- EmptyColCounts >= 19000
+cleanTrainingdata <- cleanTrainingdata[!EmptyCols]
+
+EmptyColCounts <- colSums(cleanTestingdata == "")
+EmptyCols <- EmptyColCounts >= 19000
+cleanTestingdata <- cleanTestingdata[!EmptyCols]
+
+cleanTrainingdata <- cleanTrainingdata[, c(7:60)]
+cleanTestingdata <- cleanTestingdata[, c(7:60)]
+
+paste("Dimension of tidy data", dim(cleanTrainingdata))
+```
+
+Unnecessary variables, containing only metadata, were also removed. We are left with more than 50 predictive variables, all of them containing the possibility of predictive power (most of them measures from the accelerometers). Exploratory data analysis may be cumbersome in this work, with such high dimentional data. We move on to build a simple model without visual inspection or variable selection. Hoping to do so after a first result. 
+
+# Data Model
+First I built a neural network using 10-fold cross validation, since most variables are numeric this seemed a good idea, but the accuracy was quite low, as we can see from the confusion matrix:
+
+Confusion Matrix and Statistics from Neural Networks
+
+          Reference
+Prediction    A    B    C    D    E
+
+         A 2833  277  350  427  259
+         B   71 1246  292   85  678
+         C 1275 1015 2221  945  995
+         D 1062  349  440 1283  540
+         E  339  910  119  476 1135
+
+Overall Statistics
+                                          
+               Accuracy : 0.4443          
+                 95% CI : (0.4373, 0.4513)
+    No Information Rate : 0.2844          
+    P-Value [Acc > NIR] : < 2.2e-16       
+
+I moved then to build a Random Forest model. With impressive results.
+
+Confusion Matrix and Statistics from Random Forest
+
+          Reference
+Prediction    A    B    C    D    E
+
+         A 5580    0    0    0    0
+         B    0 3797    0    0    0
+         C    0    0 3422    0    0
+         D    0    0    0 3216    0
+         E    0    0    0    0 3607
+
+Overall Statistics
+                                     
+               Accuracy : 1          
+                 95% CI : (0.9998, 1)
+    No Information Rate : 0.2844     
+    P-Value [Acc > NIR] : < 2.2e-16
+
+Since the results were so accurate even using k-fold cross validation It seemed a good idea to use this model on the test set.
+
+# Results
+
+I discarted the neural network model and used the random forest model. I expected to be greatly overfiting the data, but the great number of training points, the use validation and the fact that only meaningful variables were left in the model seems reasonable to believe the model is consistent. Evaluation in the test set produced 100% accuracy also, so it seems the random forest model is a good model at least for the subjects of the experiment.
